@@ -6,6 +6,7 @@ import br.com.tatuwallet_demo.repository.ProductRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.hateoas.Link;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,8 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+
+import static org.springframework.hateoas.server.mvc.WebMvcLinkBuilder.*;
 
 @RestController
 public class ProductController {
@@ -31,7 +34,14 @@ public class ProductController {
 
     @GetMapping("/produtos")
     public ResponseEntity<List<ProductModel>> getAllProducts() {
-        return ResponseEntity.status(HttpStatus.ACCEPTED).body(productRepository.findAll());
+        List<ProductModel> productModels = productRepository.findAll();
+
+        if (!productModels.isEmpty()) {
+            for(ProductModel productModel : productModels) {
+                productModel.add(linkTo(methodOn(ProductController.class).getProduct(productModel.getId())).withSelfRel());
+            }
+        }
+        return ResponseEntity.status(HttpStatus.OK).body(productModels);
     }
 
     @GetMapping("/produtos/{id}")
@@ -40,6 +50,7 @@ public class ProductController {
         if (productModel.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
         }
+        productModel.get().add(linkTo(methodOn(ProductController.class).getAllProducts()).withRel("Produtos totais"));
         return ResponseEntity.status(HttpStatus.OK).body(productModel.get());
     }
 
